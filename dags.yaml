@@ -199,3 +199,12 @@ bqetl_deletion_request_volume:
     email: ['telemetry-alerts@mozilla.com', 'dthorn@mozilla.com']
     retries: 2
     retry_delay: 30m
+
+bqetl_telemetry_error_count_forecast:
+  schedule_interval: 0 2 * * *
+  default_args:
+    owner: bewu@mozilla.com
+    start_date: '2020-08-20'
+    email: ['bewu@mozilla.com']
+    retries: 2
+    retry_delay: 20m
