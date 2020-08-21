@@ -7,4 +7,4 @@ labels:
   schedule: daily
   incremental: true
 scheduling:
-  dag_name: bqetl_telemetry_error_count_forecast
+  dag_name: bqetl_telemetry_payload_parse_error_forecast

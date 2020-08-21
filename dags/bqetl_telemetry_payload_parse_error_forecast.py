@@ -19,29 +19,47 @@ default_args = {
 with DAG(
     "bqetl_telemetry_error_count_forecast",
     default_args=default_args,
+    max_active_runs=1,
     schedule_interval="0 2 * * *",
 ) as dag:
-
     monitoring__telemetry_parse_payload_error_forecast__v1 = bigquery_etl_query(
         task_id="monitoring__telemetry_parse_payload_error_forecast__v1",
         destination_table="telemetry_parse_payload_error_forecast_v1",
         dataset_id="monitoring",
-        project_id="moz-fx-data-shared-prod",
+        project_id="benwu-test-1",
         owner="bewu@mozilla.com",
         email=["bewu@mozilla.com"],
         date_partition_parameter="submission_date",
+        docker_image="bwub12/bigquery-etl",
         depends_on_past=False,
         dag=dag,
+    )
+
+    monitoring__telemetry_parse_payload_error_model__v1 = bigquery_etl_query(
+        task_id="monitoring__telemetry_parse_payload_error_model__v1",
+        destination_table=None,
+        dataset_id="monitoring",
+        sql_file_path="sql/monitoring/telemetry_parse_payload_error_model_v1/model.sql",
+        project_id="benwu-test-1",
+        owner="bewu@mozilla.com",
+        email=["bewu@mozilla.com"],
+        date_partition_parameter=None,
+        docker_image="bwub12/bigquery-etl",
+        depends_on_past=False,
+        parameters=("submission_date:DATE:{{ds}}",),
+        dag=dag,
+        get_logs=False,  # airflow bug
     )
 
     monitoring__telemetry_error_counts__v1 = bigquery_etl_query(
         task_id="monitoring__telemetry_error_counts__v1",
         destination_table="telemetry_error_counts_v1",
         dataset_id="monitoring",
-        project_id="moz-fx-data-shared-prod",
+        project_id="benwu-test-1",
         owner="bewu@mozilla.com",
         email=["bewu@mozilla.com"],
         date_partition_parameter="submission_date",
+        docker_image="bwub12/bigquery-etl",
         depends_on_past=False,
         dag=dag,
     )
@@ -57,3 +75,5 @@ with DAG(
     )
 
     monitoring__telemetry_error_counts__v1.set_upstream(wait_for_copy_deduplicate_all)
+    monitoring__telemetry_parse_payload_error_model__v1.set_upstream(monitoring__telemetry_error_counts__v1)
+    monitoring__telemetry_parse_payload_error_forecast__v1.set_upstream(monitoring__telemetry_parse_payload_error_model__v1)
