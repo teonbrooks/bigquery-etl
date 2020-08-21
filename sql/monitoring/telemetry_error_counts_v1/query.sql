@@ -19,11 +19,11 @@ WITH errors AS (
   ORDER BY
     submission_hour
 ),
+-- Use stable tables because decoded tables have short retention
 stable AS (
   SELECT
     TIMESTAMP_TRUNC(submission_timestamp, HOUR) AS submission_hour,
     SUBSTR(_TABLE_SUFFIX, 0, LENGTH(_TABLE_SUFFIX) - 3) AS document_type,
-    SUBSTR(_TABLE_SUFFIX, -1, 1) AS document_version,
     COUNT(*) AS ping_count,
   FROM
     `moz-fx-data-shared-prod.telemetry_stable.*`
@@ -31,8 +31,7 @@ stable AS (
     DATE(submission_timestamp) = @submission_date
   GROUP BY
     submission_hour,
-    document_type,
-    document_version
+    document_type
 ),
 combined AS (
   SELECT
@@ -41,16 +40,16 @@ combined AS (
     document_version,
     error_type,
     exception_class,
+    -- ParsePayload errors don't have doc version so ping_count is across all versions
     COALESCE(ping_count, 0) + COALESCE(error_count, 0) AS ping_count,
     COALESCE(error_count, 0) AS error_count,
   FROM
     errors
-  FULL JOIN
+  LEFT JOIN
     stable
   USING
-    (submission_hour, document_type, document_version)
+    (submission_hour, document_type)
 )
-
 SELECT
   *,
   SAFE_DIVIDE(error_count, ping_count) AS error_ratio,

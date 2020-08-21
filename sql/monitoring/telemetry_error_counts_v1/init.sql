@@ -11,6 +11,5 @@ CREATE TABLE IF NOT EXISTS
   )
 PARTITION BY
   DATE(submission_hour)
-OPTIONS(
-  require_partition_filter=true
-)
+OPTIONS
+  (require_partition_filter = TRUE)

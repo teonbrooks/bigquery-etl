@@ -1,18 +1,17 @@
 CREATE TABLE IF NOT EXISTS
   `moz-fx-data-shared-prod.monitoring.telemetry_parse_payload_error_forecast_v1`(
-    submission_hour TIMESTAMP,
+    base_date DATE,
     forecast_timestamp TIMESTAMP,
     document_type STRING,
-    forecast_value STRING,
-    standard_error STRING,
-    confidence_level STRING,
-    prediction_interval_lower_bound STRING,
-    prediction_interval_upper_bound STRING,
-    confidence_interval_lower_bound STRING,
-    confidence_interval_upper_bound STRING,
+    forecast_value FLOAT64,
+    standard_error FLOAT64,
+    confidence_level FLOAT64,
+    prediction_interval_lower_bound FLOAT64,
+    prediction_interval_upper_bound FLOAT64,
+    confidence_interval_lower_bound FLOAT64,
+    confidence_interval_upper_bound FLOAT64,
   )
 PARTITION BY
-  DATE(submission_hour)
-OPTIONS(
-  require_partition_filter=true
-)
+  base_date
+OPTIONS
+  (require_partition_filter = TRUE)
