@@ -20,6 +20,22 @@ with DAG(
     "bqetl_experiments_daily", default_args=default_args, schedule_interval="0 3 * * *"
 ) as dag:
 
+    monitoring__query_cost__v1 = bigquery_etl_query(
+        task_id="monitoring__query_cost__v1",
+        destination_table="query_cost_v1",
+        dataset_id="monitoring",
+        project_id="moz-fx-data-experiments",
+        owner="ascholtz@mozilla.com",
+        email=[
+            "ascholtz@mozilla.com",
+            "ssuh@mozilla.com",
+            "telemetry-alerts@mozilla.com",
+        ],
+        date_partition_parameter="submission_date",
+        depends_on_past=False,
+        dag=dag,
+    )
+
     telemetry_derived__experiments_daily_active_clients__v1 = bigquery_etl_query(
         task_id="telemetry_derived__experiments_daily_active_clients__v1",
         destination_table="experiments_daily_active_clients_v1",
