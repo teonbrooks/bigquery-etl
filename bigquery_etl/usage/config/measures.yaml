@@ -2,7 +2,7 @@ sources:
   - name: main
     ref: telemetry.main
     submission_date: DATE(submission_timestamp)
-    origin_date: '2020-01-01'
+    origin_date: '2018-11-01'
     measures:
       - name: total_uri_count_sum
         sql: SUM(payload.processes.parent.scalars.browser_engagement_total_uri_count)
@@ -21,4 +21,6 @@ sources:
           ))
         usages:
           - name: had_active_ticks
-            sql: '> 0'
+            sql: '>= 1'
+          - name: had_8_active_ticks
+            sql: '>= 8'
