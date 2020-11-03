@@ -1,3 +1,8 @@
+/*
+  Generated via:
+    python -m bigquery_etl.usage
+  To add additional measures, see bigquery_etl/usage/config
+*/
 CREATE TEMP FUNCTION offsets_to_bytes(offsets ARRAY<INT64>) AS (
   (
     SELECT
@@ -37,8 +42,8 @@ CREATE TEMP FUNCTION offsets_to_bytes(offsets ARRAY<INT64>) AS (
   )
 );
 
-CREATE TABLE
-   analysis.klukas_{{ name }}_alltime_v3
+CREATE OR REPLACE TABLE
+   desktop_usage_{{ name }}_1pct_v1
 AS
 WITH daily AS (
 SELECT
