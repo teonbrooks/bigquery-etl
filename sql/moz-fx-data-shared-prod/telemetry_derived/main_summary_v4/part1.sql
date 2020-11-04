@@ -256,10 +256,7 @@ SELECT
       UNNEST([LENGTH(REGEXP_EXTRACT(_key, '.+[.].'))]) AS pos
   ) AS search_counts,
   -- Addon and configuration settings per Bug 1290181
-  udf_js.main_summary_active_addons(
-    environment.addons.active_addons,
-    JSON_EXTRACT(additional_properties, '$.environment.addons.activeAddons')
-  ) AS active_addons,
+  udf.main_summary_active_addons(environment.addons.active_addons) AS active_addons,
   -- Legacy/disabled addon and configuration settings per Bug 1390814. Please note that |disabled_addons_ids| may go away in the future.
   udf_js.main_summary_disabled_addons(
     ARRAY(SELECT key FROM UNNEST(environment.addons.active_addons)),

@@ -3,7 +3,7 @@ WITH overactive AS (
   SELECT
     client_id
   FROM
-    main_summary_v4
+    clients_summary_v1
   WHERE
     submission_date = @submission_date
   GROUP BY
@@ -383,7 +383,7 @@ SELECT
     ARRAY_CONCAT_AGG(scalar_content_telemetry_event_counts)
   ) AS scalar_content_telemetry_event_counts_sum
 FROM
-  main_summary_v4
+  clients_summary_v1
 LEFT JOIN
   overactive
 USING

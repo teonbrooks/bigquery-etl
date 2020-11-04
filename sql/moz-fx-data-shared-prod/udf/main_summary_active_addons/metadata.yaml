@@ -1,0 +1,6 @@
+---
+description: >
+  Coerce foreign_install and user_disabled to BOOL in environment.addons.active_addons from main_v4
+  and return an array instead of a "map" for backwards compatibility.
+  https://github.com/mozilla/telemetry-batch-view/blob/ea0733c00df191501b39d2c4e2ece3fe703a0ef3/src/main/scala/com/mozilla/telemetry/views/MainSummaryView.scala#L422-L449
+friendly_name: Main Summary Active Addons
