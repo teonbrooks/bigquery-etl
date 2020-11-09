@@ -68,6 +68,7 @@ SKIP = {
     "sql/moz-fx-data-shared-prod/apple_app_store/metrics_total/query.sql",
     "sql/moz-fx-data-shared-prod/monitoring/telemetry_distinct_docids_v1/query.sql",
     "sql/moz-fx-data-shared-prod/revenue_derived/client_ltv_normalized/query.sql",
+    "sql/moz-fx-data-shared-prod/stripe_derived/customers_v1/query.sql",
     "sql/moz-fx-data-shared-prod/stripe_derived/plans_v1/query.sql",
     "sql/moz-fx-data-shared-prod/stripe_derived/products_v1/query.sql",
     "sql/moz-fx-data-shared-prod/stripe_derived/subscriptions_v1/query.sql",
@@ -83,8 +84,14 @@ SKIP = {
     "sql/moz-fx-data-shared-prod/stripe_external/products_v1/query.sql",
     "sql/moz-fx-data-shared-prod/stripe_external/setup_intents_v1/query.sql",
     "sql/moz-fx-data-shared-prod/stripe_external/subscriptions_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_derived/add_device_events_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_derived/login_flows_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_derived/protected_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_derived/users_v1/query.sql",
     "sql/moz-fx-data-shared-prod/mozilla_vpn_derived/waitlist_v1/query.sql",
-    "sql/moz-fx-data-shared-prod/mozilla_vpn_external/waitlist_v1/init.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_external/devices_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_external/subscriptions_v1/query.sql",
+    "sql/moz-fx-data-shared-prod/mozilla_vpn_external/users_v1/query.sql",
     "sql/moz-fx-data-shared-prod/mozilla_vpn_external/waitlist_v1/query.sql",
     # Already exists (and lacks an "OR REPLACE" clause)
     "sql/moz-fx-data-shared-prod/org_mozilla_firefox_derived/clients_first_seen_v1/init.sql",  # noqa E501
@@ -125,8 +132,8 @@ SKIP = {
     "sql/moz-fx-data-shared-prod/telemetry_derived/clients_histogram_bucket_counts_v1/query.sql",  # noqa E501
     "sql/moz-fx-data-shared-prod/telemetry_derived/glam_client_probe_counts_extract_v1/query.sql",  # noqa E501
     "sql/moz-fx-data-shared-prod/telemetry_derived/asn_aggregates_v1/query.sql",
-    # Dataset sql/moz-fx-data-shared-prod:glam_etl was not found
-    *glob.glob("sql/moz-fx-data-shared-prod/glam_etl/**/*.sql", recursive=True),
+    # Dataset sql/glam-fenix-dev:glam_etl was not found
+    *glob.glob("sql/glam-fenix-dev/glam_etl/**/*.sql", recursive=True),
     # Query templates
     "sql/moz-fx-data-shared-prod/search_derived/mobile_search_clients_daily_v1/fenix_metrics.template.sql",  # noqa E501
     "sql/moz-fx-data-shared-prod/search_derived/mobile_search_clients_daily_v1/mobile_search_clients_daily.template.sql",  # noqa

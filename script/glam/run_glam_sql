@@ -13,7 +13,12 @@ print(dt.strftime("%Y-%m-%d"))
 EOD
 }
 
+# Project of the generated SQL
 PROJECT=${PROJECT:-"glam-fenix-dev"}
+# The DST project is the location of the destination tables, which may be
+# different from PROJECT. One example would be for running desktop SQL into a
+# dataset that's not moz-fx-data-shared-prod.
+DST_PROJECT=${DST_PROJECT:-$PROJECT}
 PROD_DATASET=${PROD_DATASET:-"glam_etl"}
 DATASET=${DATASET:-"glam_etl_dev"}
 SUBMISSION_DATE=${SUBMISSION_DATE:-$(yesterday)}
@@ -28,16 +33,6 @@ function replace_dataset {
     sed "s/$PROD_DATASET/$DATASET/g" < "$sql_path"
 }
 
-
-# replace project and dataset in an init or view file
-function replace_project_dataset {
-    local sql_path=$1
-    local prod="moz-fx-data-shared-prod"
-    sed "s/$prod/$PROJECT/g" < "$sql_path" | \
-        sed "s/$PROD_DATASET/$DATASET/g"
-}
-
-
 function run_query {
     local destination_table=$1
     local time_partition=${2:-false}
@@ -46,7 +41,7 @@ function run_query {
     local query_location=${5:-$destination_table}
     local additional_arguments="${6:---replace}"
     local sample_size=${7:-10}
-    local query="sql/moz-fx-data-shared-prod/$PROD_DATASET/$query_location/query.sql"
+    local query="sql/$PROJECT/$PROD_DATASET/$query_location/query.sql"
 
     # add an option to write to a time-partitioned table
     if $time_partition; then
@@ -60,7 +55,7 @@ function run_query {
         --max_rows=0 \
         --use_legacy_sql=false \
         $additional_arguments \
-        --project_id="$PROJECT" \
+        --project_id="$DST_PROJECT" \
         --dataset_id="$DATASET" \
         --destination_table="$destination_table" \
         --parameter="submission_date:DATE:$SUBMISSION_DATE" \
@@ -74,16 +69,16 @@ function run_query {
 
 function run_init {
     local destination_table=$1
-    local init="sql/moz-fx-data-shared-prod/$PROD_DATASET/$destination_table/init.sql"
+    local init="sql/$PROJECT/$PROD_DATASET/$destination_table/init.sql"
     # run if needed
     if ! bq show "${DATASET}.${destination_table}" &> /dev/null; then
         echo "running $init"
         local tmp
         tmp=$(mktemp)
-        replace_project_dataset "$init" > "$tmp"
+        replace_dataset "$init" > "$tmp"
         bq query \
             --use_legacy_sql=false \
-            --project_id="$PROJECT" \
+            --project_id="$DST_PROJECT" \
             < "$tmp"
     fi
 }
@@ -91,14 +86,14 @@ function run_init {
 
 function run_view {
     local view_name=$1
-    local view="sql/moz-fx-data-shared-prod/$PROD_DATASET/$view_name/view.sql"
+    local view="sql/$PROJECT/$PROD_DATASET/$view_name/view.sql"
     echo "running $view"
     local tmp
     tmp=$(mktemp)
-    replace_project_dataset "$view" > "$tmp"
+    replace_dataset "$view" > "$tmp"
     bq query \
         --use_legacy_sql=false \
-        --project_id="$PROJECT" \
+        --project_id="$DST_PROJECT" \
         --dataset_id="$DATASET" \
         < "$tmp"
 }
@@ -182,6 +177,16 @@ function run_desktop_sql {
     run_query "glam_user_counts_v1"
 }
 
+function wait_pids {
+    # Wait for the results from a list of pids, so the script can exit on the
+    # first encountered error.
+    # https://stackoverflow.com/a/356154
+    # https://askubuntu.com/a/674347
+    local pids=("$@")
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
+}
 
 function run_glean_sql {
     local error="STAGE must be one of (daily, incremental, all)"
@@ -190,6 +195,9 @@ function run_glean_sql {
     local start_stage=${START_STAGE:-0}
     local backfill_only=${BACKFILL_ONLY:-false}
     local export_only=${EXPORT_ONLY:-false}
+
+    # used to store any process ids
+    declare -a pids=()
 
     if [[ $backfill_only = true && $export_only = true ]]; then
         echo "BACKFILL_ONLY and EXPORT_ONLY are mutually exclusive"
@@ -202,16 +210,24 @@ function run_glean_sql {
     fi
     if [[ $stage == "daily" || $stage == "all" ]]; then
         if ((start_stage <= 0)) && [[ $export_only = false ]]; then
-            for directory in sql/moz-fx-data-shared-prod/glam_etl/"${product}"__clients_daily_scalar_aggregates*/; do
+            pids=()
+            for directory in sql/$PROJECT/glam_etl/"${product}"__clients_daily_scalar_aggregates*/; do
                 run_query "$(basename "$directory")" true &
+                pids+=($!)
             done
-            for directory in sql/moz-fx-data-shared-prod/glam_etl/"${product}"__clients_daily_histogram_aggregates*/; do
+            for directory in sql/$PROJECT/glam_etl/"${product}"__clients_daily_histogram_aggregates*/; do
                 run_query "$(basename "$directory")" true &
+                pids+=($!)
             done
-            wait
+            wait_pids "${pids[@]}"
+
+            pids=()
             # run in daily and incremental
             run_view "${product}__view_clients_daily_scalar_aggregates_v1" &
+            pids+=($!)
             run_view "${product}__view_clients_daily_histogram_aggregates_v1" &
+            pids+=($!)
+            wait_pids "${pids[@]}"
         fi
     fi
     if [[ $stage == "incremental" || $stage == "all" ]]; then
@@ -221,33 +237,58 @@ function run_glean_sql {
             run_view "${product}__view_clients_daily_scalar_aggregates_v1"
             run_query "${product}__latest_versions_v1"
 
+            pids=()
             run_init "${product}__clients_scalar_aggregates_v1" &
+            pids+=($!)
             run_init "${product}__clients_histogram_aggregates_v1" &
-            wait
+            pids+=($!)
+            wait_pids "${pids[@]}"
+
+            pids=()
             run_query "${product}__clients_scalar_aggregates_v1" &
+            pids+=($!)
             run_query "${product}__clients_histogram_aggregates_v1" &
-            wait
+            pids+=($!)
+            wait_pids "${pids[@]}"
         fi
         if [[ $backfill_only = true ]]; then
             return
         fi
         if ((start_stage <= 2)); then
+            pids=()
             run_query "${product}__scalar_bucket_counts_v1" &
+            pids+=($!)
             run_query "${product}__histogram_bucket_counts_v1" &
-            wait
+            pids+=($!)
+            wait_pids "${pids[@]}"
+
+            pids=()
             run_query "${product}__scalar_probe_counts_v1" &
+            pids+=($!)
             run_query "${product}__histogram_probe_counts_v1" &
-            wait
+            pids+=($!)
+            wait_pids "${pids[@]}"
+
+            pids=()
             run_query "${product}__scalar_percentiles_v1" &
+            pids+=($!)
             run_query "${product}__histogram_percentiles_v1" &
-            wait
+            pids+=($!)
+            wait_pids "${pids[@]}"
         fi
+        pids=()
         run_view "${product}__view_probe_counts_v1" &
+        pids+=($!)
         run_view "${product}__view_user_counts_v1" &
-        wait
+        pids+=($!)
+        wait_pids "${pids[@]}"
+
+        pids=()
         run_query "${product}__extract_user_counts_v1" &
+        pids+=($!)
         run_query "${product}__extract_probe_counts_v1" &
-        wait
+        pids+=($!)
+        wait_pids "${pids[@]}"
     fi
 }
 

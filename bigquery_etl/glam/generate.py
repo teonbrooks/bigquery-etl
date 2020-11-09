@@ -1,14 +1,14 @@
 """Generate templated views."""
-from pathlib import Path
 from argparse import ArgumentParser, Namespace
+from dataclasses import dataclass
+from functools import partial
+from pathlib import Path
+
 from jinja2 import Environment, PackageLoader, TemplateNotFound
 from jsonschema import validate
 
 from bigquery_etl.format_sql.formatter import reformat
 from bigquery_etl.glam import models
-
-from dataclasses import dataclass
-from functools import partial
 
 
 class QueryType:
@@ -70,14 +70,15 @@ def main():
     """Generate GLAM ETL queries."""
     parser = ArgumentParser(description=main.__doc__)
     parser.add_argument("--prefix")
+    parser.add_argument("--project", default="glam-fenix-dev")
     parser.add_argument("--dataset", default="glam_etl")
-    parser.add_argument("--sql-root", default="sql/moz-fx-data-shared-prod/")
+    parser.add_argument("--sql-root", default="sql/")
     parser.add_argument("--daily-view-only", action="store_true", default=False)
     args = parser.parse_args()
 
     env = Environment(loader=PackageLoader("bigquery_etl", "glam/templates"))
 
-    dataset_path = Path(args.sql_root) / args.dataset
+    dataset_path = Path(args.sql_root) / args.project / args.dataset
     if not dataset_path.is_dir():
         raise NotADirectoryError(f"path to {dataset_path} not found")
 
@@ -146,19 +147,18 @@ def main():
     config = {
         "org_mozilla_fenix_glam_nightly": {
             "build_date_udf": "mozfun.glam.build_hour_to_datetime",
-            "filter_version": False,
-            # this value is ignored due to filter version
-            "num_versions_to_keep": 1000,
+            "filter_version": True,
+            "num_versions_to_keep": 3,
         },
         "org_mozilla_fenix_glam_beta": {
             "build_date_udf": "mozfun.glam.build_hour_to_datetime",
             "filter_version": True,
-            "num_versions_to_keep": 2,
+            "num_versions_to_keep": 3,
         },
         "org_mozilla_fenix_glam_release": {
             "build_date_udf": "mozfun.glam.build_hour_to_datetime",
             "filter_version": True,
-            "num_versions_to_keep": 2,
+            "num_versions_to_keep": 3,
         },
     }
     validate(instance=config, schema=config_schema)

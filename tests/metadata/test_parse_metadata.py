@@ -7,6 +7,49 @@ TEST_DIR = Path(__file__).parent.parent
 
 
 class TestParseMetadata(object):
+    def test_metadata_instantiation(self):
+        metadata = Metadata(
+            "Test metadata", "test description", ["test@example.org"], {}
+        )
+
+        assert metadata.friendly_name == "Test metadata"
+        assert metadata.description == "test description"
+        assert metadata.owners == ["test@example.org"]
+        assert metadata.labels == {}
+        assert metadata.scheduling == {}
+
+    def test_invalid_owners(self):
+        with pytest.raises(ValueError):
+            Metadata("Test metadata", "test description", ["testexample.org"])
+
+    def test_invalid_label(self):
+        with pytest.raises(ValueError):
+            Metadata(
+                "Test metadata",
+                "test description",
+                ["test@example.org"],
+                {"INVALID-KEY": "foo"},
+            )
+        with pytest.raises(ValueError):
+            Metadata(
+                "Test metadata",
+                "test description",
+                ["test@example.org"],
+                {"foo": "INVALID-VALUE"},
+            )
+
+    def test_invalid_review_bugs(self):
+        assert Metadata(
+            "Test", "Description", ["test@test.org"], {"review_bugs": [123456]}
+        )
+        with pytest.raises(ValueError):
+            Metadata(
+                "Test",
+                "Description",
+                ["test@example.org"],
+                {"review_bugs": 123456},
+            )
+
     def test_is_valid_label(self):
         assert Metadata.is_valid_label("valid_label")
         assert Metadata.is_valid_label("valid-label1")
@@ -32,9 +75,7 @@ class TestParseMetadata(object):
         assert metadata.is_public_json()
         assert metadata.is_incremental()
         assert metadata.is_incremental_export()
-        assert metadata.review_bug() is None
-        assert "invalid_value" not in metadata.labels
-        assert "invalid.label" not in metadata.labels
+        assert metadata.review_bugs() is None
         assert "1232341234" in metadata.labels
         assert "1234_abcd" in metadata.labels
         assert "number_value" in metadata.labels
@@ -63,7 +104,7 @@ class TestParseMetadata(object):
 
         assert metadata.friendly_name == "Test table for a non-incremental query"
         assert metadata.description == "Test table for a non-incremental query"
-        assert metadata.review_bug() == "1999999"
+        assert metadata.review_bugs() == ["1999999", "12121212"]
 
     def test_of_sql_file_no_metadata(self):
         metadata_file = (
@@ -88,7 +129,7 @@ class TestParseMetadata(object):
 
         assert metadata.friendly_name == "Test table for a non-incremental query"
         assert metadata.description == "Test table for a non-incremental query"
-        assert metadata.review_bug() == "1999999"
+        assert metadata.review_bugs() == ["1999999", "12121212"]
 
     def test_of_non_existing_table(self):
         with pytest.raises(FileNotFoundError):
