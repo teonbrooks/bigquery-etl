@@ -16,7 +16,7 @@ WITH
     client_id,
     STRUCT(ARRAY_AGG(tip) AS key,
       ARRAY_AGG(n_engagements) AS value) AS searchtip_impression_count_by_type,
-    SUM(n_engagements) AS searchtip_impression_count
+    COALESCE(SUM(n_engagements), 0) AS searchtip_impression_count
   FROM
     searchtips_clients_daily_temp
   WHERE
