@@ -1,6 +1,6 @@
 with temp_picked as (
   SELECT
-    @submission_date,
+    submission_date,
     client_id,
     mozfun.map.sum(
       ARRAY_AGG(
